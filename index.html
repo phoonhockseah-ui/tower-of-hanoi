@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tower of Hanoi</title>
+<style>
+:root{--bg:#eef1f5;--ink:#1c2733;--mute:#5b6a7a;--board:#fff;--line:#d3dae3;--rod:#8a97a6;--accent:#2f6f6a;--accent-ink:#fff;--bad:#b3402f;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#12181f;--ink:#e6ecf2;--mute:#9aa9b8;--board:#1a232d;--line:#2c3947;--rod:#5d6f82;--accent:#5fb8ae;--accent-ink:#0c1a18;--bad:#ef8a78;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#12181f;--ink:#e6ecf2;--mute:#9aa9b8;--board:#1a232d;--line:#2c3947;--rod:#5d6f82;--accent:#5fb8ae;--accent-ink:#0c1a18;--bad:#ef8a78;color-scheme:dark}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:980px;margin:0 auto;padding:24px 16px 40px}
+h1{font-size:clamp(1.7rem,4vw,2.4rem);margin:0 0 4px;letter-spacing:-.02em}
+.sub{color:var(--mute);margin:0 0 20px;max-width:60ch}
+.bar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:16px}
+.group{display:flex;gap:4px;align-items:center;background:var(--board);border:1px solid var(--line);border-radius:10px;padding:4px}
+.group span{padding:0 8px;color:var(--mute);font-size:.9rem}
+button{font:inherit;color:inherit;cursor:pointer}
+.n{border:0;background:none;width:36px;height:36px;border-radius:7px;font-weight:600}
+.n[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.act{border:1px solid var(--line);background:var(--board);border-radius:10px;padding:8px 16px;font-weight:600}
+.act.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.act:disabled,.n:disabled{opacity:.45;cursor:not-allowed}
+button:focus-visible,.peg:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+.stat{background:var(--board);border:1px solid var(--line);border-radius:10px;padding:10px 14px}
+.stat b{display:block;font-size:1.6rem;line-height:1.2;font-variant-numeric:tabular-nums}
+.stat small{color:var(--mute)}
+.layout{display:grid;grid-template-columns:1fr 260px;gap:16px;align-items:start}
+@media (max-width:760px){.layout{grid-template-columns:1fr}}
+.board{background:var(--board);border:1px solid var(--line);border-radius:14px;padding:16px 12px 0}
+.pegs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;height:320px}
+.peg{position:relative;display:flex;flex-direction:column-reverse;align-items:center;border:2px solid transparent;border-radius:10px;background:none;padding:0 0 12px;min-width:0}
+.peg::before{content:"";position:absolute;bottom:12px;top:12px;left:50%;width:10px;margin-left:-5px;background:var(--rod);border-radius:5px}
+.peg.sel{border-color:var(--accent)}
+.peg.goal .lbl::after{content:" (goal)";color:var(--accent)}
+.peg.bad{animation:shake .25s}
+@keyframes shake{25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+@media (prefers-reduced-motion:reduce){.peg.bad{animation:none;border-color:var(--bad)}.disk{transition:none!important}}
+.disk{position:relative;z-index:1;height:clamp(22px,6vw,32px);margin-top:3px;border-radius:8px;box-shadow:inset 0 -3px 0 rgba(0,0,0,.18);transition:transform .15s,width .15s;color:rgba(0,0,0,.65);font-weight:700;font-size:.85rem;display:flex;align-items:center;justify-content:center}
+.peg.sel .disk:last-of-type{transform:translateY(-14px)}
+.base{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:6px 0 10px;text-align:center;color:var(--mute);font-weight:600;border-top:4px solid var(--rod)}
+.msg{min-height:1.6em;margin:12px 0 0;color:var(--mute)}
+.msg.win{color:var(--accent);font-weight:700}
+.msg.err{color:var(--bad)}
+.log{background:var(--board);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.log h2{font-size:1rem;margin:0 0 8px}
+.log ol{margin:0;padding:0;list-style:none;max-height:340px;overflow-y:auto;font-variant-numeric:tabular-nums;font-size:.92rem}
+.log li{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--line)}
+.log li.auto{color:var(--accent)}
+.empty{color:var(--mute);font-size:.92rem}
+.disk[draggable="true"]{cursor:grab}
+.peg{cursor:pointer}
+.peg.over{border-color:var(--accent);border-style:dashed}
+input[type=range]{accent-color:var(--accent);width:110px;margin:0 8px}
+</style>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#2f6f6a">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+</head>
+<body>
+<main>
+<h1>Tower of Hanoi</h1>
+<p class="sub">Move the whole stack to peg C. Only one disk at a time, and never a larger disk on a smaller one. Drag the top disk to another peg, or click a peg to pick up its top disk and click where it should go.</p>
+
+<div class="bar">
+  <div class="group" role="group" aria-label="Number of disks"><span>Disks</span><span id="nb" style="display:contents"></span></div>
+  <button class="act" id="restart">Restart</button>
+  <button class="act primary" id="solve">Solve in minimum moves</button>
+  <button class="act" id="pause" disabled>Pause</button>
+  <button class="act" id="undo" disabled>Undo</button>
+  <label class="group"><span>Solver speed</span><input type="range" id="speed" min="1" max="10" value="5" aria-label="Solver speed"></label>
+</div>
+
+<div class="stats">
+  <div class="stat"><b id="moves">0</b><small>Your moves</small></div>
+  <div class="stat"><b id="min">7</b><small>Minimum for this tower</small></div>
+  <div class="stat"><b id="left">7</b><small>Moves left from here</small></div>
+</div>
+
+<div class="layout">
+  <section>
+    <div class="board">
+      <div class="pegs" id="pegs"></div>
+      <div class="base"><div>A</div><div>B</div><div>C</div></div>
+    </div>
+    <p class="msg" id="msg" role="status" aria-live="polite"></p>
+  </section>
+  <aside class="log">
+    <h2>Move log</h2>
+    <ol id="log"></ol>
+    <p class="empty" id="empty">No moves yet.</p>
+  </aside>
+</div>
+</main>
+
+<script>
+(function(){
+  var NAMES=['A','B','C'], GOAL=2;
+  var n=3, pegs=[[],[],[]], sel=-1, moves=0, solving=false, timer=null, won=false, history=[], paused=false, dragFrom=-1, stepper=null;
+  var $=function(id){return document.getElementById(id)};
+
+  // disk-count buttons
+  var nb=$('nb');
+  for(var i=3;i<=8;i++){
+    (function(k){
+      var b=document.createElement('button');
+      b.className='n';b.textContent=k;b.setAttribute('aria-pressed',k===n);b.dataset.n=k;
+      b.onclick=function(){n=k;reset()};
+      nb.appendChild(b);
+    })(i);
+  }
+
+  function reset(){
+    clearTimeout(timer);timer=null;solving=false;paused=false;won=false;sel=-1;moves=0;history=[];
+    pegs=[[],[],[]];
+    for(var d=n;d>=1;d--)pegs[0].push(d);
+    $('log').innerHTML='';$('empty').style.display='';
+    setMsg('');
+    render();
+  }
+
+  function setMsg(t,c){var m=$('msg');m.textContent=t;m.className='msg'+(c?' '+c:'')}
+
+  // optimal solution to move everything onto peg C from the current position
+  function plan(){
+    var loc={},i,d;
+    for(i=0;i<3;i++)for(d=0;d<pegs[i].length;d++)loc[pegs[i][d]]=i;
+    var out=[];
+    (function mv(k,to){
+      if(k<1)return;
+      var from=loc[k];
+      if(from===to){mv(k-1,to);return}
+      var other=3-from-to;
+      mv(k-1,other);
+      out.push([k,from,to]);loc[k]=to;
+      mv(k-1,to);
+    })(n,GOAL);
+    return out;
+  }
+
+  function render(){
+    var el=$('pegs');el.innerHTML='';
+    for(var i=0;i<3;i++){
+      var p=document.createElement('div');p.setAttribute('role','button');p.tabIndex=0;p.onkeydown=(function(k){return function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();click(k)}}})(i);
+      p.className='peg'+(sel===i?' sel':'')+(i===GOAL?' goal':'');
+      p.setAttribute('aria-label','Peg '+NAMES[i]+(i===GOAL?' (goal)':'')+', '+pegs[i].length+' disks'+(sel===i?', selected':''));
+      p.dataset.i=i;
+      pegs[i].forEach(function(d,idx){
+        var disk=document.createElement('div');
+        disk.className='disk';
+        disk.style.width=(24+68*d/n)+'%';
+        disk.style.background='hsl('+(170+d*(170/n))+' 60% 62%)';
+        disk.textContent=d;
+        if(idx===pegs[i].length-1&&!solving&&!won)disk.draggable=true;
+        p.appendChild(disk);
+      });
+      p.onclick=(function(k){return function(){click(k)}})(i);
+      el.appendChild(p);
+    }
+    $('moves').textContent=moves;
+    $('min').textContent=Math.pow(2,n)-1;
+    $('left').textContent=plan().length;
+    var bs=document.querySelectorAll('.n');
+    for(var j=0;j<bs.length;j++){bs[j].setAttribute('aria-pressed',+bs[j].dataset.n===n);bs[j].disabled=solving}
+    $('solve').disabled=solving||won;
+    $('undo').disabled=solving||!history.length;
+    $('pause').disabled=!solving;
+    $('pause').textContent=paused?'Resume':'Pause';
+  }
+
+  function apply(from,to,auto){
+    var d=pegs[from].pop();pegs[to].push(d);moves++;history.push([from,to]);
+    var li=document.createElement('li');
+    if(auto)li.className='auto';
+    li.innerHTML='<span>#'+moves+'  Disk '+d+'</span><span>'+NAMES[from]+' \u2192 '+NAMES[to]+'</span>';
+    $('log').appendChild(li);$('empty').style.display='none';
+    $('log').scrollTop=1e6;
+    if(pegs[GOAL].length===n){
+      won=true;
+      var min=Math.pow(2,n)-1;
+      setMsg(moves===min?'Solved in '+moves+' moves \u2014 the minimum possible.':'Solved in '+moves+' moves. The minimum is '+min+'.','win');
+    }
+  }
+
+  function click(i){
+    if(solving||won)return;
+    if(sel<0){
+      if(!pegs[i].length){flag(i,'Peg '+NAMES[i]+' is empty. Pick a peg that has a disk.');return}
+      sel=i;setMsg('');render();return;
+    }
+    if(sel===i){sel=-1;render();return}
+    var top=pegs[sel][pegs[sel].length-1],dest=pegs[i][pegs[i].length-1];
+    if(dest&&dest<top){flag(i,'Disk '+top+' can\u2019t go on smaller disk '+dest+'.');sel=-1;render();flag(i);return}
+    var from=sel;sel=-1;setMsg('');apply(from,i,false);render();
+  }
+
+  function flag(i,text){
+    if(text)setMsg(text,'err');
+    var p=$('pegs').children[i];
+    if(p){p.classList.remove('bad');void p.offsetWidth;p.classList.add('bad')}
+  }
+
+  $('restart').onclick=reset;
+
+  function delay(){return 1100-100*(+$('speed').value)}
+
+  function attempt(from,to){
+    if(solving||won||from===to||!pegs[from].length)return;
+    var top=pegs[from][pegs[from].length-1],dest=pegs[to][pegs[to].length-1];
+    if(dest&&dest<top){setMsg('Disk '+top+' can\u2019t go on smaller disk '+dest+'.','err');render();flag(to);return}
+    setMsg('');apply(from,to,false);render();
+  }
+
+  var pe=$('pegs');
+  pe.addEventListener('dragstart',function(e){
+    var p=e.target.closest('.peg');
+    if(!p||solving||won){e.preventDefault();return}
+    dragFrom=+p.dataset.i;sel=-1;
+    e.dataTransfer.setData('text/plain','disk');e.dataTransfer.effectAllowed='move';
+  });
+  pe.addEventListener('dragover',function(e){
+    if(dragFrom<0)return;
+    e.preventDefault();
+    var cur=e.target.closest('.peg');
+    Array.prototype.forEach.call(pe.children,function(c){c.classList.toggle('over',c===cur)});
+  });
+  pe.addEventListener('drop',function(e){
+    e.preventDefault();
+    var p=e.target.closest('.peg'),f=dragFrom;dragFrom=-1;
+    if(p&&f>=0)attempt(f,+p.dataset.i);
+    render();
+  });
+  pe.addEventListener('dragend',function(){dragFrom=-1;render()});
+
+  $('undo').onclick=function(){
+    if(solving||!history.length)return;
+    var h=history.pop();
+    pegs[h[0]].push(pegs[h[1]].pop());
+    moves--;won=false;sel=-1;
+    var log=$('log');log.removeChild(log.lastChild);
+    if(!history.length)$('empty').style.display='';
+    setMsg('');render();
+  };
+
+  $('pause').onclick=function(){
+    if(!solving)return;
+    paused=!paused;
+    if(paused){clearTimeout(timer);setMsg('Paused.')}
+    else{setMsg('Solving with the fewest moves\u2026');timer=setTimeout(stepper,0)}
+    render();
+  };
+
+  $('solve').onclick=function(){
+    if(solving||won)return;
+    sel=-1;
+    var steps=plan();
+    if(!steps.length)return;
+    solving=true;setMsg('Solving with the fewest moves\u2026');render();
+    var i=0;
+    stepper=function(){if(!solving||paused)return;
+      var s=steps[i++];
+      apply(s[1],s[2],true);
+      if(i>=steps.length){timer=null;solving=false;paused=false;
+        setMsg('Solved. Moves from this position were optimal; total moves: '+moves+'.','win');}
+      render();
+    if(solving)timer=setTimeout(stepper,delay());};
+    timer=setTimeout(stepper,delay());
+  };
+
+  document.addEventListener('keydown',function(e){
+    if(e.target.tagName==='INPUT')return;
+    if(e.key==='1'||e.key==='2'||e.key==='3')click(+e.key-1);
+  });
+
+  reset();
+})();
+</script>
+<script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})})}</script>
+</body>
+</html>
